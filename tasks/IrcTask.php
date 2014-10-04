@@ -23,7 +23,6 @@ use Phalcon\Events\Manager as EventsManager;
 use Panthea\Irc\Client as IrcClient;
 
 require 'library/Irc/Client.php';
-require 'library/Irc/Monitor.php';
 
 /**
  * IrcTask
@@ -35,13 +34,14 @@ class IrcTask extends Task
     public function runAction()
     {
         $irc = $this->config->irc;
-        $monitor = $this->config->monitor;
         $connection = $this->db;
 
+        $pdo = $connection->getInternalHandler();
+
         /**
-         * Create a monitor to check if the bot is up
+         * Prepare a SQL statement
          */
-        new Monitor($monitor->server, $monitor->port);
+        $prepared = $pdo->prepare('INSERT INTO irclog (who, content, datelog) VALUES (:who, :content, :datelog)');
 
         /**
          * Creates a IRC client
@@ -67,14 +67,12 @@ class IrcTask extends Task
         /**
          * Receives a message from the channel and stores it in the log
          */
-        $client->on('message', function(Event $event, $client, $message) use ($connection) {
-            $connection->execute(
-                'INSERT INTO irclog (who, content, datelog) VALUES (:who, :content, :datelog)', array(
-                    'who'     => (string) $message['from']['nick'],
-                    'content' => (string) $message['message'],
-                    'datelog' => time()
-                )
-            );
+        $client->on('message', function(Event $event, $client, $message) use ($prepared) {
+            $prepared->execute(array(
+                'who'     => (string) $message['from']['nick'],
+                'content' => (string) $message['message'],
+                'datelog' => time()
+            ));
         });
 
         $client->listen();
