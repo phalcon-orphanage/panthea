@@ -36,13 +36,6 @@ class IrcTask extends Task
         $irc = $this->config->irc;
         $connection = $this->db;
 
-        $pdo = $connection->getInternalHandler();
-
-        /**
-         * Prepare a SQL statement
-         */
-        $prepared = $pdo->prepare('INSERT INTO irclog (who, content, datelog) VALUES (:who, :content, :datelog)');
-
         /**
          * Creates a IRC client
          */
@@ -61,18 +54,21 @@ class IrcTask extends Task
          * Queries the database connection when a ping is received from the IRC server
          */
         $client->on('ping', function() use ($connection) {
-            $connection->execute('SELECT 1');
+            $connection->query('SELECT 1');
         });
 
         /**
          * Receives a message from the channel and stores it in the log
          */
-        $client->on('message', function(Event $event, $client, $message) use ($prepared) {
-            $prepared->execute(array(
-                'who'     => (string) $message['from']['nick'],
-                'content' => (string) $message['message'],
-                'datelog' => time()
-            ));
+        $client->on('message', function(Event $event, $client, $message) use ($connection) {
+            $connection->execute(
+                'INSERT INTO irclog (who, content, datelog) VALUES (:who, :content, :datelog)',
+                array(
+                    'who'     => $message['from']['nick'],
+                    'content' => $message['message'],
+                    'datelog' => time()
+                )
+            );
         });
 
         $client->listen();
