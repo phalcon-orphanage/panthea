@@ -22,8 +22,8 @@ use Panthea\Irc\Monitor;
 use Phalcon\Events\Manager as EventsManager;
 use Panthea\Irc\Client as IrcClient;
 
-require 'library/irc/Client.php';
-require 'library/irc/Monitor.php';
+require 'library/Irc/Client.php';
+require 'library/Irc/Monitor.php';
 
 /**
  * IrcTask
